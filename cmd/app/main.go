@@ -1,9 +1,15 @@
 package main
 
 import (
-	gr "github.com/Blobst/gitinfo/internal/app"
+	"fmt"
+	"os"
+
+	"github.com/Blobst/gitinfo/internal/app"
 )
 
 func main() {
-	gr.Run("Blobst")
+	if err := app.Run(); err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 }
