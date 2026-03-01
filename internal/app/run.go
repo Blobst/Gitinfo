@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"golang.design/x/clipboard"
 )
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -68,11 +69,14 @@ type Model struct {
 	list     list.Model
 	username string
 	err      error
+	copied   string // feedback message after copying
 	width    int
 	height   int
 }
 
 func NewModel() Model {
+	// Initialise clipboard (no-op on failure, handled at call site)
+	_ = clipboard.Init()
 	ti := textinput.New()
 	ti.Placeholder = "Enter GitHub username..."
 	ti.CharLimit = 64
@@ -157,10 +161,25 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Back to search
 				m.state = stateInput
 				m.err = nil
+				m.copied = ""
 				m.input.SetValue("")
 				m.input.Focus()
 				m.list.SetItems(nil)
 				return m, textinput.Blink
+			}
+			// Copy SSH url
+			if msg.String() == "s" && !m.list.SettingFilter() {
+				if item, ok := m.list.SelectedItem().(repoItem); ok {
+					clipboard.Write(clipboard.FmtText, []byte(item.repo.SSHCloneURL()))
+					m.copied = "SSH URL copied!"
+				}
+			}
+			// Copy HTTP url
+			if msg.String() == "h" && !m.list.SettingFilter() {
+				if item, ok := m.list.SelectedItem().(repoItem); ok {
+					clipboard.Write(clipboard.FmtText, []byte(item.repo.HTTPCloneURL()))
+					m.copied = "HTTPS URL copied!"
+				}
 			}
 		}
 
@@ -214,9 +233,13 @@ func (m Model) View() string {
 		)
 
 	case stateList:
+		copied := ""
+		if m.copied != "" {
+			copied = "\n" + lipgloss.NewStyle().Foreground(lipgloss.Color("10")).Render("✓ "+m.copied)
+		}
 		return docStyle.Render(
-			m.list.View() + "\n" +
-				subtitleStyle.Render("/ to filter • esc to search again • ctrl+c to quit"),
+			m.list.View() + copied + "\n" +
+				subtitleStyle.Render("s SSH  h HTTPS  / filter  esc search again  ctrl+c quit"),
 		)
 	}
 	return ""

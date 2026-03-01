@@ -11,10 +11,22 @@ type Repo struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	HTMLURL     string `json:"html_url"`
+	SSHURL      string `json:"ssh_url"`
+	CloneURL    string `json:"clone_url"`
 	Language    string `json:"language"`
 	Stars       int    `json:"stargazers_count"`
 	Forks       int    `json:"forks_count"`
 	Private     bool   `json:"private"`
+}
+
+// SSHCloneURL returns the SSH clone URL, e.g. git@github.com:user/repo.git
+func (r Repo) SSHCloneURL() string {
+	return r.SSHURL
+}
+
+// HTTPCloneURL returns the HTTPS clone URL, e.g. https://github.com/user/repo.git
+func (r Repo) HTTPCloneURL() string {
+	return r.CloneURL
 }
 
 func FetchRepos(user string, page int) ([]Repo, error) {
